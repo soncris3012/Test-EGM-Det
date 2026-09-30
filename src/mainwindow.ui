@@ -233,7 +233,7 @@
           <item>
            <widget class="QCheckBox" name="gateCheck">
             <property name="text">
-             <string>Show Modality Gate</string>
+             <string>Show reliability map</string>
             </property>
            </widget>
           </item>

@@ -15,6 +15,7 @@ qt_add_executable(egm-det-benchmark
     src/mainwindow.cpp src/mainwindow.h
     src/benchmarkworker.cpp src/benchmarkworker.h
     src/evaluator.cpp src/evaluator.h
+    src/reliabilityanalyzer.cpp src/reliabilityanalyzer.h
     src/dataloader.cpp src/dataloader.h
     src/imageview.cpp src/imageview.h
     src/types.h
@@ -37,4 +38,8 @@ if(BUILD_TESTING)
     target_link_libraries(evaluator-tests PRIVATE Qt6::Widgets)
     target_compile_definitions(evaluator-tests PRIVATE QT_NO_KEYWORDS)
     add_test(NAME evaluator-tests COMMAND evaluator-tests)
+    qt_add_executable(reliability-tests tests/reliability_tests.cpp src/reliabilityanalyzer.cpp src/reliabilityanalyzer.h)
+    target_link_libraries(reliability-tests PRIVATE Qt6::Widgets)
+    target_compile_definitions(reliability-tests PRIVATE QT_NO_KEYWORDS)
+    add_test(NAME reliability-tests COMMAND reliability-tests)
 endif()

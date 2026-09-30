@@ -14,10 +14,10 @@
 - Rotated IoU, class-aware one-to-one matching, 101-point `AP50`, `AP75`, and `mAP50–95`.
 - Background worker with Qt signals/slots; responsive UI during long runs / worker chạy nền, giao diện không bị đóng băng.
 - CSV and PDF report export / xuất báo cáo CSV và PDF.
-- Dataset-only deterministic demo backend, so the evaluation pipeline can be tested before ONNX Runtime is linked.
+- Weight-free RGB/IR reliability analysis using local entropy, contrast, exposure quality, and modality preference mapping.
 - Automatic bundled-model discovery at `models/egm_det.onnx`; users do not browse for a model.
 
-> Accuracy shown by the demo backend is synthetic and must not be reported as EGM-Det model accuracy. Production inference should replace the marked backend section in `BenchmarkWorker` with ONNX Runtime/TensorRT decoding and rotated NMS.
+> Weight-free results describe image reliability only. They are not detections, mAP, or EGM-Det inference. Production inference still requires an official trained checkpoint plus ONNX Runtime/TensorRT decoding and rotated NMS.
 
 ## Dataset layout / Cấu trúc dữ liệu
 
@@ -64,7 +64,7 @@ open build/egm-det-benchmark.app
 
 ## Production model integration / Tích hợp mô hình thật
 
-Expected model inputs are `input_rgb` and `input_ir`, shaped `[N,C,H,W]`; expected decoded outputs are `[cx,cy,w,h,angle,class scores…]`. Add ONNX Runtime or TensorRT in `CMakeLists.txt`, then replace the clearly marked demo block in `src/benchmarkworker.cpp` with:
+Expected model inputs are `input_rgb` and `input_ir`, shaped `[N,C,H,W]`; expected decoded outputs are `[cx,cy,w,h,angle,class scores…]`. Add ONNX Runtime or TensorRT in `CMakeLists.txt`, then add production inference alongside the weight-free analyzer:
 
 1. letterbox preprocessing at 640 or 1024;
 2. dual-input inference;
@@ -87,7 +87,8 @@ MainWindow (UI thread)
           ↓
 BenchmarkWorker (QThread)
    ├── DataLoader
-   ├── inference adapter (demo; replace with ONNX/TensorRT)
+   ├── weight-free ReliabilityAnalyzer
+   ├── future inference adapter (ONNX/TensorRT)
    └── Evaluator (rotated IoU + COCO AP)
 ```
 

@@ -33,16 +33,26 @@ struct BenchmarkReport {
     int processed = 0;
     int total = 0;
     double elapsedMs = 0.0;
+    double rgbPreferencePct = 0.0;
+    double irPreferencePct = 0.0;
+    double ambiguousPct = 0.0;
+    double meanEntropy = 0.0;
+    bool reliabilityOnly = false;
 };
 
 struct FrameResult {
     QImage rgb;
     QImage ir;
+    QImage gateMap;
     QList<OrientedBox> boxes;
     QString fileName;
     double preprocessMs = 0.0;
     double forwardMs = 0.0;
     double nmsMs = 0.0;
+    double rgbPreferencePct = 0.0;
+    double irPreferencePct = 0.0;
+    double ambiguousPct = 0.0;
+    double meanEntropy = 0.0;
 };
 
 struct BenchmarkConfig {
