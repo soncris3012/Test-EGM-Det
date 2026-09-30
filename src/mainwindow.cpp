@@ -2,10 +2,13 @@
 #include "benchmarkworker.h"
 #include "imageview.h"
 #include "ui_mainwindow.h"
+#include <QCoreApplication>
+#include <QDir>
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDoubleSpinBox>
 #include <QFileDialog>
+#include <QFileInfo>
 #include <QHeaderView>
 #include <QLabel>
 #include <QLineEdit>
@@ -23,7 +26,7 @@
 MainWindow::MainWindow(QWidget *parent):QMainWindow(parent){
     qRegisterMetaType<BenchmarkConfig>();qRegisterMetaType<FrameResult>();qRegisterMetaType<BenchmarkReport>();
     Ui::MainWindow ui;ui.setupUi(this);
-    m_dataset=ui.datasetEdit;m_model=ui.modelEdit;m_task=ui.taskCombo;m_inputSize=ui.inputCombo;
+    m_dataset=ui.datasetEdit;m_task=ui.taskCombo;m_inputSize=ui.inputCombo;
     m_confidence=ui.confidenceSpin;m_nms=ui.nmsSpin;m_batch=ui.batchSpin;
     m_single=ui.singleRadio;m_batchMode=ui.batchRadio;m_gate=ui.gateCheck;
     m_run=ui.runButton;m_export=ui.exportButton;m_progress=ui.progressBar;m_table=ui.metricsTable;
@@ -32,7 +35,6 @@ MainWindow::MainWindow(QWidget *parent):QMainWindow(parent){
     m_run->setObjectName("run");
     m_table->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);m_table->verticalHeader()->hide();
     connect(ui.datasetBrowseButton,&QPushButton::clicked,this,&MainWindow::chooseDataset);
-    connect(ui.modelBrowseButton,&QPushButton::clicked,this,&MainWindow::chooseModel);
     connect(m_run,&QPushButton::clicked,this,&MainWindow::startBenchmark);
     connect(m_export,&QPushButton::clicked,this,&MainWindow::exportReport);
     connect(m_rgb,&ImageView::zoomChanged,m_ir,&ImageView::setSynchronizedZoom);
@@ -55,8 +57,7 @@ MainWindow::MainWindow(QWidget *parent):QMainWindow(parent){
 MainWindow::~MainWindow(){Q_EMIT cancelRequested();m_thread->quit();m_thread->wait();}
 
 void MainWindow::chooseDataset(){auto p=QFileDialog::getExistingDirectory(this,"Choose paired RGB/IR dataset");if(!p.isEmpty())m_dataset->setText(p);}
-void MainWindow::chooseModel(){auto p=QFileDialog::getOpenFileName(this,"Choose EGM-Det ONNX model",{},"ONNX model (*.onnx)");if(!p.isEmpty())m_model->setText(p);}
-void MainWindow::startBenchmark(){if(m_dataset->text().isEmpty()){QMessageBox::information(this,"Dataset required","Choose a dataset root containing paired RGB and IR folders.");return;}BenchmarkConfig c{m_dataset->text(),m_task->currentText(),m_model->text(),m_confidence->value(),m_nms->value(),m_batch->value(),m_inputSize->currentText().toInt(),m_single->isChecked(),m_gate->isChecked()};setRunning(true);m_status->setText(m_model->text().isEmpty()?"Running evaluator with the deterministic demo backend…":"ONNX path saved; this portable build uses the demo backend until ONNX Runtime is enabled.");Q_EMIT runRequested(c);}
+void MainWindow::startBenchmark(){if(m_dataset->text().isEmpty()){QMessageBox::information(this,"Dataset required","Choose a dataset root containing paired RGB and IR folders.");return;}QString model=QDir(QCoreApplication::applicationDirPath()).filePath("models/egm_det.onnx");if(!QFileInfo::exists(model))model=QDir(QCoreApplication::applicationDirPath()).filePath("../models/egm_det.onnx");if(!QFileInfo::exists(model))model=QDir::current().filePath("models/egm_det.onnx");BenchmarkConfig c{m_dataset->text(),m_task->currentText(),model,m_confidence->value(),m_nms->value(),m_batch->value(),m_inputSize->currentText().toInt(),m_single->isChecked(),m_gate->isChecked()};setRunning(true);m_status->setText(QFileInfo::exists(model)?"Model found automatically: models/egm_det.onnx":"Model not installed; running the deterministic demo evaluator.");Q_EMIT runRequested(c);}
 void MainWindow::setRunning(bool b){m_run->setEnabled(!b);m_export->setEnabled(!b&&!m_lastReport.rows.isEmpty());if(b){m_progress->setRange(0,0);m_table->setRowCount(0);}}
 void MainWindow::showFrame(FrameResult f){m_rgbName->setText(f.fileName);m_irName->setText(f.fileName);m_rgb->setFrame(f.rgb,f.boxes);m_ir->setFrame(f.ir,f.boxes);double total=f.preprocessMs+f.forwardMs+f.nmsMs;m_timing->setText(QString("Pre %1 ms · Forward %2 ms · NMS %3 ms · %4 FPS").arg(f.preprocessMs,0,'f',1).arg(f.forwardMs,0,'f',1).arg(f.nmsMs,0,'f',1).arg(total>0?1000/total:0,0,'f',0));}
 void MainWindow::showReport(BenchmarkReport r){m_lastReport=r;fillTable(r);m_progress->setRange(0,qMax(1,r.total));m_progress->setValue(r.processed);m_status->setText(QString("Completed %1/%2 pairs in %3 s").arg(r.processed).arg(r.total).arg(r.elapsedMs/1000,0,'f',2));setRunning(false);}

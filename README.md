@@ -15,6 +15,7 @@
 - Background worker with Qt signals/slots; responsive UI during long runs / worker chạy nền, giao diện không bị đóng băng.
 - CSV and PDF report export / xuất báo cáo CSV và PDF.
 - Dataset-only deterministic demo backend, so the evaluation pipeline can be tested before ONNX Runtime is linked.
+- Automatic bundled-model discovery at `models/egm_det.onnx`; users do not browse for a model.
 
 > Accuracy shown by the demo backend is synthetic and must not be reported as EGM-Det model accuracy. Production inference should replace the marked backend section in `BenchmarkWorker` with ONNX Runtime/TensorRT decoding and rotated NMS.
 
