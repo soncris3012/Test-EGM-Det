@@ -26,32 +26,38 @@ static QPushButton *browseButton(){auto*b=new QPushButton("Browse…");b->setObj
 
 MainWindow::MainWindow(QWidget *parent):QMainWindow(parent){
     qRegisterMetaType<BenchmarkConfig>();qRegisterMetaType<FrameResult>();qRegisterMetaType<BenchmarkReport>();
-    setWindowTitle("EGM-Det benchmark tool");resize(1480,900);
-    auto *root=new QWidget;auto *layout=new QHBoxLayout(root);layout->setContentsMargins(24,18,24,24);layout->setSpacing(20);layout->addWidget(makeConfigPanel(),0);layout->addWidget(makeResultsPanel(),1);setCentralWidget(root);
+    setWindowTitle("EGM-Det Benchmark - Qt/C++");resize(1360,820);
+    auto *root=new QWidget;auto *layout=new QHBoxLayout(root);layout->setContentsMargins(8,8,8,8);layout->setSpacing(8);layout->addWidget(makeConfigPanel(),0);layout->addWidget(makeResultsPanel(),1);setCentralWidget(root);
     setStyleSheet(R"(
-      *{font-family:"Inter","SF Pro Display",sans-serif;font-size:15px;color:#deded9} QMainWindow,QWidget{background:#151616}
-      QGroupBox{border:1px solid #444746;border-radius:14px;margin-top:13px;padding:18px 14px 14px}QGroupBox::title{subcontrol-origin:margin;left:14px;padding:0 7px;font-size:18px;font-weight:600}
-      QLineEdit,QComboBox,QSpinBox,QDoubleSpinBox{background:#1b1c1c;border:1px solid #3b3d3d;border-radius:10px;padding:9px;min-height:24px}QLineEdit:focus,QComboBox:focus,QSpinBox:focus,QDoubleSpinBox:focus{border-color:#4c83df}
-      QPushButton{background:#1a1b1b;border:1px solid #3f4241;border-radius:10px;padding:11px;font-size:17px}QPushButton:hover{background:#242626}QPushButton#run{color:#86b4ff;border-color:#245aa4}QPushButton:disabled{color:#777}
-      QTableWidget{background:#171818;border:0;gridline-color:#333636;selection-background-color:#123568}QHeaderView::section{background:#1a1b1b;border:0;border-bottom:1px solid #3c3e3e;padding:10px;font-weight:600}QProgressBar{border:1px solid #3a3d3c;border-radius:8px;background:#111212;text-align:center}QProgressBar::chunk{background:#477fd3;border-radius:7px}
+      *{font-family:"Arial",sans-serif;font-size:13px;color:#e2e2e2}
+      QMainWindow,QWidget{background:#2b2b2b}
+      QGroupBox{background:#303030;border:1px solid #777;margin-top:9px;padding:10px 5px 5px}
+      QGroupBox::title{subcontrol-origin:margin;left:7px;padding:0 3px;font-weight:bold}
+      QLineEdit,QComboBox,QSpinBox,QDoubleSpinBox{background:#202020;border:1px solid #777;padding:3px;min-height:22px}
+      QLineEdit:focus,QComboBox:focus,QSpinBox:focus,QDoubleSpinBox:focus{border:1px solid #aaa}
+      QPushButton{background:#444;border:1px outset #999;padding:5px;min-height:24px}
+      QPushButton:pressed{border-style:inset;background:#333}QPushButton#run{color:#fff;background:#3b4c62}QPushButton:disabled{color:#777;background:#383838}
+      QTableWidget{background:#252525;border:1px solid #777;gridline-color:#555;selection-background-color:#385478}
+      QHeaderView::section{background:#444;border:1px solid #666;padding:5px;font-weight:bold}
+      QProgressBar{border:1px solid #777;background:#202020;text-align:center;min-height:18px}QProgressBar::chunk{background:#4c76a8}
     )");
     m_thread=new QThread(this);m_worker=new BenchmarkWorker;m_worker->moveToThread(m_thread);connect(m_thread,&QThread::finished,m_worker,&QObject::deleteLater);connect(this,&MainWindow::runRequested,m_worker,&BenchmarkWorker::run);connect(this,&MainWindow::cancelRequested,m_worker,&BenchmarkWorker::cancel,Qt::DirectConnection);connect(m_worker,&BenchmarkWorker::progressChanged,this,[this](int n,int total){m_progress->setMaximum(total);m_progress->setValue(n);m_progress->setFormat(QString("%1 / %2").arg(n).arg(total));});connect(m_worker,&BenchmarkWorker::frameProcessed,this,&MainWindow::showFrame);connect(m_worker,&BenchmarkWorker::benchmarkFinished,this,&MainWindow::showReport);connect(m_worker,&BenchmarkWorker::failed,this,&MainWindow::showError);m_thread->start();
 }
 MainWindow::~MainWindow(){Q_EMIT cancelRequested();m_thread->quit();m_thread->wait();}
 
 QWidget *MainWindow::makeConfigPanel(){
-    auto *panel=new QWidget;panel->setFixedWidth(380);auto *v=new QVBoxLayout(panel);v->setContentsMargins(0,0,0,0);
+    auto *panel=new QWidget;panel->setFixedWidth(330);auto *v=new QVBoxLayout(panel);v->setContentsMargins(0,0,0,0);v->setSpacing(6);
     auto *config=new QGroupBox("Test configuration");auto *cv=new QVBoxLayout(config);auto *dataRow=new QHBoxLayout;m_dataset=new QLineEdit;m_dataset->setPlaceholderText("Dataset root folder");auto *db=browseButton();dataRow->addWidget(m_dataset);dataRow->addWidget(db);cv->addLayout(dataRow);auto *modelRow=new QHBoxLayout;m_model=new QLineEdit;m_model->setPlaceholderText("Optional .onnx model");auto *mb=browseButton();modelRow->addWidget(m_model);modelRow->addWidget(mb);cv->addLayout(modelRow);auto *form=new QFormLayout;m_task=new QComboBox;m_task->addItems({"DroneVehicle — OBB","VEDAI — OBB","LLVIP — HBB"});form->addRow("Task",m_task);cv->addLayout(form);v->addWidget(config);
     connect(db,&QPushButton::clicked,this,&MainWindow::chooseDataset);connect(mb,&QPushButton::clicked,this,&MainWindow::chooseModel);
     auto *params=new QGroupBox("Parameters");auto *f=new QFormLayout(params);m_confidence=new QDoubleSpinBox;m_confidence->setRange(0,1);m_confidence->setSingleStep(.05);m_confidence->setValue(.25);m_nms=new QDoubleSpinBox;m_nms->setRange(0,1);m_nms->setSingleStep(.05);m_nms->setValue(.45);m_batch=new QSpinBox;m_batch->setRange(1,128);m_inputSize=new QComboBox;m_inputSize->addItems({"640","1024"});f->addRow("Confidence",m_confidence);f->addRow("NMS IoU",m_nms);f->addRow("Batch size",m_batch);f->addRow("Input size",m_inputSize);v->addWidget(params);
     auto *mode=new QGroupBox("Mode");auto *mv=new QVBoxLayout(mode);m_single=new QRadioButton("Single pair debug");m_batchMode=new QRadioButton("Batch evaluation");m_batchMode->setChecked(true);m_gate=new QCheckBox("Show Modality Gate");mv->addWidget(m_single);mv->addWidget(m_batchMode);mv->addWidget(m_gate);v->addWidget(mode);
-    m_run=new QPushButton("▷  Run benchmark");m_run->setObjectName("run");m_export=new QPushButton("⇩  Export CSV / PDF");m_export->setEnabled(false);v->addWidget(m_run);v->addWidget(m_export);m_status=new QLabel("Ready — select a dataset folder");m_status->setWordWrap(true);m_status->setStyleSheet("color:#8f9290;padding:6px");v->addWidget(m_status);v->addStretch();connect(m_run,&QPushButton::clicked,this,&MainWindow::startBenchmark);connect(m_export,&QPushButton::clicked,this,&MainWindow::exportReport);return panel;
+    m_run=new QPushButton("Run benchmark");m_run->setObjectName("run");m_export=new QPushButton("Export CSV / PDF...");m_export->setEnabled(false);v->addWidget(m_run);v->addWidget(m_export);m_status=new QLabel("Status: select a dataset folder");m_status->setWordWrap(true);m_status->setFrameStyle(QFrame::Panel|QFrame::Sunken);m_status->setStyleSheet("color:#c8c8c8;padding:4px;background:#222");v->addWidget(m_status);v->addStretch();connect(m_run,&QPushButton::clicked,this,&MainWindow::startBenchmark);connect(m_export,&QPushButton::clicked,this,&MainWindow::exportReport);return panel;
 }
 
 QWidget *MainWindow::makeResultsPanel(){
-    auto *panel=new QWidget;auto *v=new QVBoxLayout(panel);v->setContentsMargins(0,0,0,0);auto *images=new QHBoxLayout;
+    auto *panel=new QWidget;auto *v=new QVBoxLayout(panel);v->setContentsMargins(0,0,0,0);v->setSpacing(5);auto *images=new QHBoxLayout;images->setSpacing(6);
     auto makeView=[&](QString title,ImageView **view,QLabel **name){auto*g=new QGroupBox(title);auto*l=new QVBoxLayout(g);*name=new QLabel("No image");(*name)->setAlignment(Qt::AlignRight);*view=new ImageView;l->addWidget(*name);l->addWidget(*view);images->addWidget(g);};makeView("RGB image",&m_rgb,&m_rgbName);makeView("IR image",&m_ir,&m_irName);v->addLayout(images,5);connect(m_rgb,&ImageView::zoomChanged,m_ir,&ImageView::setSynchronizedZoom);connect(m_ir,&ImageView::zoomChanged,m_rgb,&ImageView::setSynchronizedZoom);
-    auto *summary=new QHBoxLayout;auto *legend=new QLabel("<font color='#63d16e'>- - Ground truth</font>   <font color='#6ea0ff'>━━ Prediction</font>");m_timing=new QLabel("Pre — · Forward — · NMS — · FPS —");m_timing->setAlignment(Qt::AlignRight);summary->addWidget(legend);summary->addStretch();summary->addWidget(m_timing);v->addLayout(summary);m_progress=new QProgressBar;m_progress->setRange(0,1);m_progress->setValue(0);v->addWidget(m_progress);
+    auto *summary=new QHBoxLayout;auto *legend=new QLabel("GT: green dashed     Prediction: blue solid");m_timing=new QLabel("Pre: - ms | Forward: - ms | NMS: - ms | FPS: -");m_timing->setAlignment(Qt::AlignRight);summary->addWidget(legend);summary->addStretch();summary->addWidget(m_timing);v->addLayout(summary);m_progress=new QProgressBar;m_progress->setRange(0,1);m_progress->setValue(0);v->addWidget(m_progress);
     m_table=new QTableWidget(0,8);m_table->setHorizontalHeaderLabels({"Class","Target","Det.","P","R","AP50","AP75","AP50–95"});m_table->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);m_table->verticalHeader()->hide();m_table->setEditTriggers(QAbstractItemView::NoEditTriggers);m_table->setSelectionBehavior(QAbstractItemView::SelectRows);v->addWidget(m_table,4);auto *note=new QLabel("Metrics use rotated IoU and COCO-style 101-point AP at IoU 0.50:0.05:0.95.");note->setStyleSheet("color:#8c8e8c");v->addWidget(note);return panel;
 }
 
