@@ -11,6 +11,7 @@ find_package(Qt6 6.4 REQUIRED COMPONENTS Widgets Concurrent PrintSupport)
 
 qt_add_executable(egm-det-benchmark
     src/main.cpp
+    src/mainwindow.ui
     src/mainwindow.cpp src/mainwindow.h
     src/benchmarkworker.cpp src/benchmarkworker.h
     src/evaluator.cpp src/evaluator.h
@@ -22,6 +23,7 @@ qt_add_executable(egm-det-benchmark
 target_link_libraries(egm-det-benchmark PRIVATE
     Qt6::Widgets Qt6::Concurrent Qt6::PrintSupport
 )
+target_include_directories(egm-det-benchmark PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_compile_definitions(egm-det-benchmark PRIVATE QT_NO_KEYWORDS)
 
 install(TARGETS egm-det-benchmark

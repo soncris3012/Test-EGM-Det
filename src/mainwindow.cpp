@@ -1,12 +1,11 @@
 #include "mainwindow.h"
 #include "benchmarkworker.h"
 #include "imageview.h"
+#include "ui_mainwindow.h"
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDoubleSpinBox>
 #include <QFileDialog>
-#include <QFormLayout>
-#include <QGroupBox>
 #include <QHeaderView>
 #include <QLabel>
 #include <QLineEdit>
@@ -20,14 +19,24 @@
 #include <QTableWidget>
 #include <QTextStream>
 #include <QThread>
-#include <QVBoxLayout>
-
-static QPushButton *browseButton(){auto*b=new QPushButton("Browse…");b->setObjectName("secondary");return b;}
 
 MainWindow::MainWindow(QWidget *parent):QMainWindow(parent){
     qRegisterMetaType<BenchmarkConfig>();qRegisterMetaType<FrameResult>();qRegisterMetaType<BenchmarkReport>();
-    setWindowTitle("EGM-Det Benchmark - Qt/C++");resize(1360,820);
-    auto *root=new QWidget;auto *layout=new QHBoxLayout(root);layout->setContentsMargins(8,8,8,8);layout->setSpacing(8);layout->addWidget(makeConfigPanel(),0);layout->addWidget(makeResultsPanel(),1);setCentralWidget(root);
+    Ui::MainWindow ui;ui.setupUi(this);
+    m_dataset=ui.datasetEdit;m_model=ui.modelEdit;m_task=ui.taskCombo;m_inputSize=ui.inputCombo;
+    m_confidence=ui.confidenceSpin;m_nms=ui.nmsSpin;m_batch=ui.batchSpin;
+    m_single=ui.singleRadio;m_batchMode=ui.batchRadio;m_gate=ui.gateCheck;
+    m_run=ui.runButton;m_export=ui.exportButton;m_progress=ui.progressBar;m_table=ui.metricsTable;
+    m_rgb=ui.rgbView;m_ir=ui.irView;m_rgbName=ui.rgbNameLabel;m_irName=ui.irNameLabel;
+    m_timing=ui.timingLabel;m_status=ui.statusLabel;
+    m_run->setObjectName("run");
+    m_table->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);m_table->verticalHeader()->hide();
+    connect(ui.datasetBrowseButton,&QPushButton::clicked,this,&MainWindow::chooseDataset);
+    connect(ui.modelBrowseButton,&QPushButton::clicked,this,&MainWindow::chooseModel);
+    connect(m_run,&QPushButton::clicked,this,&MainWindow::startBenchmark);
+    connect(m_export,&QPushButton::clicked,this,&MainWindow::exportReport);
+    connect(m_rgb,&ImageView::zoomChanged,m_ir,&ImageView::setSynchronizedZoom);
+    connect(m_ir,&ImageView::zoomChanged,m_rgb,&ImageView::setSynchronizedZoom);
     setStyleSheet(R"(
       *{font-family:"Arial",sans-serif;font-size:13px;color:#e2e2e2}
       QMainWindow,QWidget{background:#2b2b2b}
@@ -44,22 +53,6 @@ MainWindow::MainWindow(QWidget *parent):QMainWindow(parent){
     m_thread=new QThread(this);m_worker=new BenchmarkWorker;m_worker->moveToThread(m_thread);connect(m_thread,&QThread::finished,m_worker,&QObject::deleteLater);connect(this,&MainWindow::runRequested,m_worker,&BenchmarkWorker::run);connect(this,&MainWindow::cancelRequested,m_worker,&BenchmarkWorker::cancel,Qt::DirectConnection);connect(m_worker,&BenchmarkWorker::progressChanged,this,[this](int n,int total){m_progress->setMaximum(total);m_progress->setValue(n);m_progress->setFormat(QString("%1 / %2").arg(n).arg(total));});connect(m_worker,&BenchmarkWorker::frameProcessed,this,&MainWindow::showFrame);connect(m_worker,&BenchmarkWorker::benchmarkFinished,this,&MainWindow::showReport);connect(m_worker,&BenchmarkWorker::failed,this,&MainWindow::showError);m_thread->start();
 }
 MainWindow::~MainWindow(){Q_EMIT cancelRequested();m_thread->quit();m_thread->wait();}
-
-QWidget *MainWindow::makeConfigPanel(){
-    auto *panel=new QWidget;panel->setFixedWidth(330);auto *v=new QVBoxLayout(panel);v->setContentsMargins(0,0,0,0);v->setSpacing(6);
-    auto *config=new QGroupBox("Test configuration");auto *cv=new QVBoxLayout(config);auto *dataRow=new QHBoxLayout;m_dataset=new QLineEdit;m_dataset->setPlaceholderText("Dataset root folder");auto *db=browseButton();dataRow->addWidget(m_dataset);dataRow->addWidget(db);cv->addLayout(dataRow);auto *modelRow=new QHBoxLayout;m_model=new QLineEdit;m_model->setPlaceholderText("Optional .onnx model");auto *mb=browseButton();modelRow->addWidget(m_model);modelRow->addWidget(mb);cv->addLayout(modelRow);auto *form=new QFormLayout;m_task=new QComboBox;m_task->addItems({"DroneVehicle — OBB","VEDAI — OBB","LLVIP — HBB"});form->addRow("Task",m_task);cv->addLayout(form);v->addWidget(config);
-    connect(db,&QPushButton::clicked,this,&MainWindow::chooseDataset);connect(mb,&QPushButton::clicked,this,&MainWindow::chooseModel);
-    auto *params=new QGroupBox("Parameters");auto *f=new QFormLayout(params);m_confidence=new QDoubleSpinBox;m_confidence->setRange(0,1);m_confidence->setSingleStep(.05);m_confidence->setValue(.25);m_nms=new QDoubleSpinBox;m_nms->setRange(0,1);m_nms->setSingleStep(.05);m_nms->setValue(.45);m_batch=new QSpinBox;m_batch->setRange(1,128);m_inputSize=new QComboBox;m_inputSize->addItems({"640","1024"});f->addRow("Confidence",m_confidence);f->addRow("NMS IoU",m_nms);f->addRow("Batch size",m_batch);f->addRow("Input size",m_inputSize);v->addWidget(params);
-    auto *mode=new QGroupBox("Mode");auto *mv=new QVBoxLayout(mode);m_single=new QRadioButton("Single pair debug");m_batchMode=new QRadioButton("Batch evaluation");m_batchMode->setChecked(true);m_gate=new QCheckBox("Show Modality Gate");mv->addWidget(m_single);mv->addWidget(m_batchMode);mv->addWidget(m_gate);v->addWidget(mode);
-    m_run=new QPushButton("Run benchmark");m_run->setObjectName("run");m_export=new QPushButton("Export CSV / PDF...");m_export->setEnabled(false);v->addWidget(m_run);v->addWidget(m_export);m_status=new QLabel("Status: select a dataset folder");m_status->setWordWrap(true);m_status->setFrameStyle(QFrame::Panel|QFrame::Sunken);m_status->setStyleSheet("color:#c8c8c8;padding:4px;background:#222");v->addWidget(m_status);v->addStretch();connect(m_run,&QPushButton::clicked,this,&MainWindow::startBenchmark);connect(m_export,&QPushButton::clicked,this,&MainWindow::exportReport);return panel;
-}
-
-QWidget *MainWindow::makeResultsPanel(){
-    auto *panel=new QWidget;auto *v=new QVBoxLayout(panel);v->setContentsMargins(0,0,0,0);v->setSpacing(5);auto *images=new QHBoxLayout;images->setSpacing(6);
-    auto makeView=[&](QString title,ImageView **view,QLabel **name){auto*g=new QGroupBox(title);auto*l=new QVBoxLayout(g);*name=new QLabel("No image");(*name)->setAlignment(Qt::AlignRight);*view=new ImageView;l->addWidget(*name);l->addWidget(*view);images->addWidget(g);};makeView("RGB image",&m_rgb,&m_rgbName);makeView("IR image",&m_ir,&m_irName);v->addLayout(images,5);connect(m_rgb,&ImageView::zoomChanged,m_ir,&ImageView::setSynchronizedZoom);connect(m_ir,&ImageView::zoomChanged,m_rgb,&ImageView::setSynchronizedZoom);
-    auto *summary=new QHBoxLayout;auto *legend=new QLabel("GT: green dashed     Prediction: blue solid");m_timing=new QLabel("Pre: - ms | Forward: - ms | NMS: - ms | FPS: -");m_timing->setAlignment(Qt::AlignRight);summary->addWidget(legend);summary->addStretch();summary->addWidget(m_timing);v->addLayout(summary);m_progress=new QProgressBar;m_progress->setRange(0,1);m_progress->setValue(0);v->addWidget(m_progress);
-    m_table=new QTableWidget(0,8);m_table->setHorizontalHeaderLabels({"Class","Target","Det.","P","R","AP50","AP75","AP50–95"});m_table->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);m_table->verticalHeader()->hide();m_table->setEditTriggers(QAbstractItemView::NoEditTriggers);m_table->setSelectionBehavior(QAbstractItemView::SelectRows);v->addWidget(m_table,4);auto *note=new QLabel("Metrics use rotated IoU and COCO-style 101-point AP at IoU 0.50:0.05:0.95.");note->setStyleSheet("color:#8c8e8c");v->addWidget(note);return panel;
-}
 
 void MainWindow::chooseDataset(){auto p=QFileDialog::getExistingDirectory(this,"Choose paired RGB/IR dataset");if(!p.isEmpty())m_dataset->setText(p);}
 void MainWindow::chooseModel(){auto p=QFileDialog::getOpenFileName(this,"Choose EGM-Det ONNX model",{},"ONNX model (*.onnx)");if(!p.isEmpty())m_model->setText(p);}
