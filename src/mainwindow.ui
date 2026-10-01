@@ -339,56 +339,6 @@
             <item>
              <widget class="ImageView" name="rgbView"/>
             </item>
-            <item>
-             <widget class="QTableWidget" name="metricsTable">
-              <property name="editTriggers">
-               <set>QAbstractItemView::EditTrigger::NoEditTriggers</set>
-              </property>
-              <property name="selectionBehavior">
-               <enum>QAbstractItemView::SelectionBehavior::SelectRows</enum>
-              </property>
-              <column>
-               <property name="text">
-                <string>Class</string>
-               </property>
-              </column>
-              <column>
-               <property name="text">
-                <string>Target</string>
-               </property>
-              </column>
-              <column>
-               <property name="text">
-                <string>Det.</string>
-               </property>
-              </column>
-              <column>
-               <property name="text">
-                <string>P</string>
-               </property>
-              </column>
-              <column>
-               <property name="text">
-                <string>R</string>
-               </property>
-              </column>
-              <column>
-               <property name="text">
-                <string>AP50</string>
-               </property>
-              </column>
-              <column>
-               <property name="text">
-                <string>AP75</string>
-               </property>
-              </column>
-              <column>
-               <property name="text">
-                <string>AP50–95</string>
-               </property>
-              </column>
-             </widget>
-            </item>
            </layout>
           </widget>
          </item>
@@ -411,15 +361,6 @@
             <item>
              <widget class="ImageView" name="irView"/>
             </item>
-           </layout>
-          </widget>
-         </item>
-         <item>
-          <widget class="QGroupBox" name="histogramGroup">
-           <property name="title"><string>Benchmark histogram</string></property>
-           <property name="maximumSize"><size><width>280</width><height>16777215</height></size></property>
-           <layout class="QVBoxLayout" name="histogramLayout">
-            <item><widget class="ReliabilityChartWidget" name="reliabilityChart"/></item>
            </layout>
           </widget>
          </item>
@@ -470,10 +411,35 @@
         </widget>
        </item>
        <item>
+        <widget class="QTableWidget" name="metricsTable">
+         <property name="maximumSize"><size><width>16777215</width><height>105</height></size></property>
+         <property name="editTriggers"><set>QAbstractItemView::EditTrigger::NoEditTriggers</set></property>
+         <property name="selectionBehavior"><enum>QAbstractItemView::SelectionBehavior::SelectRows</enum></property>
+         <column><property name="text"><string>Class</string></property></column>
+         <column><property name="text"><string>Target</string></property></column>
+         <column><property name="text"><string>Det.</string></property></column>
+         <column><property name="text"><string>P</string></property></column>
+         <column><property name="text"><string>R</string></property></column>
+         <column><property name="text"><string>AP50</string></property></column>
+         <column><property name="text"><string>AP75</string></property></column>
+         <column><property name="text"><string>AP50–95</string></property></column>
+        </widget>
+       </item>
+       <item>
         <widget class="QLabel" name="metricNoteLabel">
          <property name="text">
           <string>Weight-free heuristic analysis based on local entropy, contrast and exposure. This is not EGM-Det mAP.</string>
          </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="histogramGroup">
+         <property name="title"><string>Benchmark histogram</string></property>
+         <property name="minimumSize"><size><width>0</width><height>165</height></size></property>
+         <property name="maximumSize"><size><width>16777215</width><height>200</height></size></property>
+         <layout class="QVBoxLayout" name="histogramLayout">
+          <item><widget class="ReliabilityChartWidget" name="reliabilityChart"/></item>
+         </layout>
         </widget>
        </item>
       </layout>

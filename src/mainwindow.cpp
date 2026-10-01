@@ -33,6 +33,7 @@ MainWindow::MainWindow(QWidget *parent):QMainWindow(parent){
     m_run=ui.runButton;m_export=ui.exportButton;m_progress=ui.progressBar;m_table=ui.metricsTable;
     m_rgb=ui.rgbView;m_ir=ui.irView;m_chart=ui.reliabilityChart;m_rgbName=ui.rgbNameLabel;m_irName=ui.irNameLabel;
     m_timing=ui.timingLabel;m_status=ui.statusLabel;
+    ui.imagesLayout->setStretch(0,1);ui.imagesLayout->setStretch(1,1);
     m_run->setObjectName("run");
     m_table->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);m_table->verticalHeader()->hide();
     connect(ui.datasetBrowseButton,&QPushButton::clicked,this,&MainWindow::chooseDataset);

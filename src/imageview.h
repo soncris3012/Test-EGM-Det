@@ -13,7 +13,9 @@ public Q_SLOTS:
     void setSynchronizedZoom(double scale);
 protected:
     void wheelEvent(QWheelEvent *event) override;
+    void resizeEvent(QResizeEvent *event) override;
 private:
     QGraphicsScene m_scene;
     double m_zoom=1.0;
+    bool m_autoFit=true;
 };
