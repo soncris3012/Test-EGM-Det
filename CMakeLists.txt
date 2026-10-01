@@ -16,6 +16,7 @@ qt_add_executable(egm-det-benchmark
     src/benchmarkworker.cpp src/benchmarkworker.h
     src/evaluator.cpp src/evaluator.h
     src/reliabilityanalyzer.cpp src/reliabilityanalyzer.h
+    src/reliabilitychartwidget.cpp src/reliabilitychartwidget.h
     src/dataloader.cpp src/dataloader.h
     src/imageview.cpp src/imageview.h
     src/types.h

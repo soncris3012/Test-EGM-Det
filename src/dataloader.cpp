@@ -11,7 +11,7 @@ static QString firstDirectory(const QString &root,const QStringList &names){for(
 static QString datasetRoot(QString selected){
     QDir dir(selected);QString leaf=dir.dirName().toLower();
     if(leaf=="train"||leaf=="test"||leaf=="val"||leaf=="validation"){dir.cdUp();leaf=dir.dirName().toLower();}
-    if(leaf=="visible"||leaf=="infrared"||leaf=="rgb"||leaf=="ir")dir.cdUp();
+    if(leaf=="visible"||leaf=="infrared"||leaf=="rgb"||leaf=="ir"||leaf=="crop_hr_visible"||leaf=="crop_lr_visible"||leaf=="cropinfrared")dir.cdUp();
     return dir.absolutePath();
 }
 
@@ -25,10 +25,10 @@ static QString withCommonSplit(const QString &rgb,const QString &ir,QString *res
 
 QList<Sample> DataLoader::discover(QString *error) const {
     const QString root=datasetRoot(m_root);
-    QString rgb=firstDirectory(root,{"rgb","RGB","images/rgb","visible","Visible","images"});
-    QString ir=firstDirectory(root,{"ir","IR","images/ir","infrared","Infrared"});
+    QString rgb=firstDirectory(root,{"rgb","RGB","images/rgb","visible","Visible","crop_HR_visible","crop_LR_visible","images"});
+    QString ir=firstDirectory(root,{"ir","IR","images/ir","infrared","Infrared","cropinfrared"});
     QString ann=firstDirectory(root,{"labels","annotations","gt","ground_truth"});
-    if(rgb.isEmpty()||ir.isEmpty()){if(error)*error="Expected RGB and IR folders (rgb/ir, visible/infrared, or images/rgb/images/ir).";return {};}
+    if(rgb.isEmpty()||ir.isEmpty()){if(error)*error="Expected paired folders: rgb/ir, visible/infrared, images/rgb/images/ir, or RoadScene crop_HR_visible/cropinfrared.";return {};}
     QString resolvedIr;rgb=withCommonSplit(rgb,ir,&resolvedIr);ir=resolvedIr;
     const QString split=QFileInfo(rgb).fileName().toLower();if(!ann.isEmpty()&&QDir(QDir(ann).filePath(split)).exists())ann=QDir(ann).filePath(split);
     QDir d(rgb); const QStringList files=d.entryList({"*.jpg","*.jpeg","*.png","*.bmp"},QDir::Files,QDir::Name); QList<Sample> out;

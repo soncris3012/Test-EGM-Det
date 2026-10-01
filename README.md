@@ -53,6 +53,16 @@ llvip/
 
 You may select the `llvip` root, a modality folder, or its `test` folder; the loader resolves the dataset root automatically.
 
+RoadScene is supported with its original aligned-pair layout. The loader intentionally uses the cropped, registered pair and ignores `infrared/` because that folder contains the uncropped source images:
+
+```text
+roadscene/
+├── crop_HR_visible/     # RGB input
+├── cropinfrared/        # aligned IR input
+├── crop_LR_visible/     # optional lower-resolution RGB
+└── infrared/            # original IR, not selected for aligned analysis
+```
+
 ## Build / Biên dịch
 
 Requirements: CMake 3.21+, a C++17 compiler, and Qt 6.4+ with Widgets and PrintSupport.

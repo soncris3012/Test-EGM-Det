@@ -110,6 +110,11 @@
                 <string>LLVIP — HBB</string>
                </property>
               </item>
+              <item>
+               <property name="text">
+                <string>RoadScene — Fusion</string>
+               </property>
+              </item>
              </widget>
             </item>
            </layout>
@@ -409,6 +414,15 @@
            </layout>
           </widget>
          </item>
+         <item>
+          <widget class="QGroupBox" name="histogramGroup">
+           <property name="title"><string>Benchmark histogram</string></property>
+           <property name="maximumSize"><size><width>280</width><height>16777215</height></size></property>
+           <layout class="QVBoxLayout" name="histogramLayout">
+            <item><widget class="ReliabilityChartWidget" name="reliabilityChart"/></item>
+           </layout>
+          </widget>
+         </item>
         </layout>
        </item>
        <item>
@@ -416,7 +430,7 @@
          <item>
           <widget class="QLabel" name="legendLabel">
            <property name="text">
-            <string>GT: green dashed     Prediction: blue solid</string>
+            <string>Map: blue = RGB reliable, orange = IR reliable, gray = ambiguous</string>
            </property>
           </widget>
          </item>
@@ -458,7 +472,7 @@
        <item>
         <widget class="QLabel" name="metricNoteLabel">
          <property name="text">
-          <string>Metrics use rotated IoU and COCO-style 101-point AP at IoU 0.50:0.05:0.95.</string>
+          <string>Weight-free heuristic analysis based on local entropy, contrast and exposure. This is not EGM-Det mAP.</string>
          </property>
         </widget>
        </item>
@@ -473,6 +487,11 @@
    <class>ImageView</class>
    <extends>QGraphicsView</extends>
    <header>imageview.h</header>
+  </customwidget>
+  <customwidget>
+   <class>ReliabilityChartWidget</class>
+   <extends>QWidget</extends>
+   <header>reliabilitychartwidget.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include "benchmarkworker.h"
 #include "imageview.h"
+#include "reliabilitychartwidget.h"
 #include "ui_mainwindow.h"
 #include <QCoreApplication>
 #include <QDir>
@@ -30,7 +31,7 @@ MainWindow::MainWindow(QWidget *parent):QMainWindow(parent){
     m_confidence=ui.confidenceSpin;m_nms=ui.nmsSpin;m_batch=ui.batchSpin;
     m_single=ui.singleRadio;m_batchMode=ui.batchRadio;m_gate=ui.gateCheck;
     m_run=ui.runButton;m_export=ui.exportButton;m_progress=ui.progressBar;m_table=ui.metricsTable;
-    m_rgb=ui.rgbView;m_ir=ui.irView;m_rgbName=ui.rgbNameLabel;m_irName=ui.irNameLabel;
+    m_rgb=ui.rgbView;m_ir=ui.irView;m_chart=ui.reliabilityChart;m_rgbName=ui.rgbNameLabel;m_irName=ui.irNameLabel;
     m_timing=ui.timingLabel;m_status=ui.statusLabel;
     m_run->setObjectName("run");
     m_table->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);m_table->verticalHeader()->hide();
@@ -59,7 +60,7 @@ MainWindow::~MainWindow(){Q_EMIT cancelRequested();m_thread->quit();m_thread->wa
 void MainWindow::chooseDataset(){auto p=QFileDialog::getExistingDirectory(this,"Choose paired RGB/IR dataset");if(!p.isEmpty())m_dataset->setText(p);}
 void MainWindow::startBenchmark(){if(m_dataset->text().isEmpty()){QMessageBox::information(this,"Dataset required","Choose a dataset root containing paired RGB and IR folders.");return;}QString model=QDir(QCoreApplication::applicationDirPath()).filePath("models/egm_det.onnx");if(!QFileInfo::exists(model))model=QDir(QCoreApplication::applicationDirPath()).filePath("../models/egm_det.onnx");if(!QFileInfo::exists(model))model=QDir::current().filePath("models/egm_det.onnx");m_showReliability=m_gate->isChecked();BenchmarkConfig c{m_dataset->text(),m_task->currentText(),model,m_confidence->value(),m_nms->value(),m_batch->value(),m_inputSize->currentText().toInt(),m_single->isChecked(),m_showReliability};setRunning(true);m_status->setText("Running weight-free RGB/IR reliability analysis (not EGM-Det inference)…");Q_EMIT runRequested(c);}
 void MainWindow::setRunning(bool b){m_run->setEnabled(!b);m_export->setEnabled(!b&&(!m_lastReport.rows.isEmpty()||m_lastReport.reliabilityOnly));if(b){m_progress->setRange(0,0);m_table->setRowCount(0);}}
-void MainWindow::showFrame(FrameResult f){m_rgbName->setText("RGB | "+f.fileName);m_irName->setText((m_showReliability?"Reliability map | ":"IR | ")+f.fileName);m_rgb->setFrame(f.rgb,f.boxes);m_ir->setFrame(m_showReliability?f.gateMap:f.ir,m_showReliability?QList<OrientedBox>{}:f.boxes);double total=f.preprocessMs+f.forwardMs;m_timing->setText(QString("RGB %1% | IR %2% | Ambiguous %3% | Entropy %4 | %5 ms").arg(f.rgbPreferencePct,0,'f',1).arg(f.irPreferencePct,0,'f',1).arg(f.ambiguousPct,0,'f',1).arg(f.meanEntropy,0,'f',2).arg(total,0,'f',1));}
+void MainWindow::showFrame(FrameResult f){m_rgbName->setText("RGB | "+f.fileName);m_irName->setText((m_showReliability?"Reliability map | ":"IR | ")+f.fileName);m_rgb->setFrame(f.rgb,f.boxes);m_ir->setFrame(m_showReliability?f.gateMap:f.ir,m_showReliability?QList<OrientedBox>{}:f.boxes);m_chart->setMetrics(f.rgbPreferencePct,f.irPreferencePct,f.ambiguousPct,f.meanEntropy);double total=f.preprocessMs+f.forwardMs;m_timing->setText(QString("RGB %1% | IR %2% | Ambiguous %3% | Entropy %4 | %5 ms").arg(f.rgbPreferencePct,0,'f',1).arg(f.irPreferencePct,0,'f',1).arg(f.ambiguousPct,0,'f',1).arg(f.meanEntropy,0,'f',2).arg(total,0,'f',1));}
 void MainWindow::showReport(BenchmarkReport r){m_lastReport=r;fillTable(r);m_progress->setRange(0,qMax(1,r.total));m_progress->setValue(r.processed);m_status->setText(QString("Reliability analysis completed: %1 pairs | RGB %2% | IR %3% | ambiguous %4% (not EGM-Det mAP)").arg(r.processed).arg(r.rgbPreferencePct,0,'f',1).arg(r.irPreferencePct,0,'f',1).arg(r.ambiguousPct,0,'f',1));setRunning(false);}
 void MainWindow::showError(QString s){setRunning(false);m_progress->setRange(0,1);m_status->setText("Error: "+s);QMessageBox::warning(this,"Benchmark error",s);}
 void MainWindow::fillTable(const BenchmarkReport&r){if(r.reliabilityOnly){m_table->setHorizontalHeaderLabels({"Analysis","RGB prefer","IR prefer","Ambiguous","Mean entropy","Pairs","Mode","mAP"});m_table->setRowCount(1);QStringList vals{"Dataset average",QString::number(r.rgbPreferencePct,'f',1)+"%",QString::number(r.irPreferencePct,'f',1)+"%",QString::number(r.ambiguousPct,'f',1)+"%",QString::number(r.meanEntropy,'f',2),QString::number(r.processed),"Heuristic","N/A"};for(int c=0;c<vals.size();++c)m_table->setItem(0,c,new QTableWidgetItem(vals[c]));return;}m_table->setHorizontalHeaderLabels({"Class","Target","Det.","P","R","AP50","AP75","AP50–95"});m_table->setRowCount(r.rows.size());for(int i=0;i<r.rows.size();++i){auto&m=r.rows[i];QStringList vals{m.className,QString::number(m.targets),QString::number(m.detections),QString::number(m.precision,'f',1),QString::number(m.recall,'f',1),QString::number(m.ap50,'f',1),QString::number(m.ap75,'f',1),QString::number(m.map5095,'f',1)};for(int c=0;c<vals.size();++c)m_table->setItem(i,c,new QTableWidgetItem(vals[c]));}}
