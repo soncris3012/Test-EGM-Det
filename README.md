@@ -43,6 +43,16 @@ truck 721 404 130 76 7.0
 
 RGB and IR files are paired by their base filename. Supported images: JPG, JPEG, PNG and BMP.
 
+LLVIP's native nested layout is also detected automatically. The benchmark prefers `test`, then `val`, then `train` when both modalities contain the same split:
+
+```text
+llvip/
+├── visible/{train,test}/
+└── infrared/{train,test}/
+```
+
+You may select the `llvip` root, a modality folder, or its `test` folder; the loader resolves the dataset root automatically.
+
 ## Build / Biên dịch
 
 Requirements: CMake 3.21+, a C++17 compiler, and Qt 6.4+ with Widgets and PrintSupport.

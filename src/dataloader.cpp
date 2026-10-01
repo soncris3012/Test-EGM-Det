@@ -8,14 +8,32 @@ DataLoader::DataLoader(QString root):m_root(std::move(root)){}
 
 static QString firstDirectory(const QString &root,const QStringList &names){for(auto &n:names){QString p=QDir(root).filePath(n);if(QDir(p).exists())return p;}return {};}
 
+static QString datasetRoot(QString selected){
+    QDir dir(selected);QString leaf=dir.dirName().toLower();
+    if(leaf=="train"||leaf=="test"||leaf=="val"||leaf=="validation"){dir.cdUp();leaf=dir.dirName().toLower();}
+    if(leaf=="visible"||leaf=="infrared"||leaf=="rgb"||leaf=="ir")dir.cdUp();
+    return dir.absolutePath();
+}
+
+static QString withCommonSplit(const QString &rgb,const QString &ir,QString *resolvedIr){
+    for(const auto &split:{"test","val","validation","train"}){
+        const QString r=QDir(rgb).filePath(split),i=QDir(ir).filePath(split);
+        if(QDir(r).exists()&&QDir(i).exists()){*resolvedIr=i;return r;}
+    }
+    *resolvedIr=ir;return rgb;
+}
+
 QList<Sample> DataLoader::discover(QString *error) const {
-    const QString rgb=firstDirectory(m_root,{"rgb","RGB","images/rgb","visible","images"});
-    const QString ir=firstDirectory(m_root,{"ir","IR","images/ir","infrared"});
-    const QString ann=firstDirectory(m_root,{"labels","annotations","gt","ground_truth"});
+    const QString root=datasetRoot(m_root);
+    QString rgb=firstDirectory(root,{"rgb","RGB","images/rgb","visible","Visible","images"});
+    QString ir=firstDirectory(root,{"ir","IR","images/ir","infrared","Infrared"});
+    QString ann=firstDirectory(root,{"labels","annotations","gt","ground_truth"});
     if(rgb.isEmpty()||ir.isEmpty()){if(error)*error="Expected RGB and IR folders (rgb/ir, visible/infrared, or images/rgb/images/ir).";return {};}
+    QString resolvedIr;rgb=withCommonSplit(rgb,ir,&resolvedIr);ir=resolvedIr;
+    const QString split=QFileInfo(rgb).fileName().toLower();if(!ann.isEmpty()&&QDir(QDir(ann).filePath(split)).exists())ann=QDir(ann).filePath(split);
     QDir d(rgb); const QStringList files=d.entryList({"*.jpg","*.jpeg","*.png","*.bmp"},QDir::Files,QDir::Name); QList<Sample> out;
     for(auto &f:files){QFileInfo fi(f);QString irp;for(auto&e:{"jpg","jpeg","png","bmp"}){auto p=QDir(ir).filePath(fi.completeBaseName()+"."+e);if(QFile::exists(p)){irp=p;break;}}if(irp.isEmpty())continue;Sample s{fi.completeBaseName(),d.filePath(f),irp,{}};if(!ann.isEmpty()){for(auto&e:{"txt","csv"}){auto p=QDir(ann).filePath(s.id+"."+e);if(QFile::exists(p)){s.annotationPath=p;break;}}}out<<s;}
-    if(out.isEmpty()&&error)*error="No paired RGB/IR images with matching base names were found."; return out;
+    if(out.isEmpty()&&error)*error=QString("No paired RGB/IR images with matching base names were found in %1 and %2.").arg(rgb,ir); return out;
 }
 
 QList<OrientedBox> DataLoader::loadAnnotation(const QString &path,const QSize &size,const QString &id){
