@@ -10,10 +10,11 @@ struct Features { QVector<float> score, entropy; int w=0,h=0; };
 Features extract(const QImage &source, const QSize &size) {
     QImage gray=source.convertToFormat(QImage::Format_Grayscale8).scaled(size,Qt::IgnoreAspectRatio,Qt::SmoothTransformation);
     Features f;f.w=gray.width();f.h=gray.height();f.score.resize(f.w*f.h);f.entropy.resize(f.w*f.h);
+    const int stride=f.w+1,total=(f.w+1)*(f.h+1);QVector<double> sum(total),sum2(total);std::array<QVector<int>,16> hist;for(auto &h:hist)h.resize(total);
+    for(int y=1;y<=f.h;++y){const uchar *line=gray.constScanLine(y-1);double rowSum=0,rowSum2=0;std::array<int,16> rowHist{};for(int x=1;x<=f.w;++x){int v=line[x-1],idx=y*stride+x,above=(y-1)*stride+x;rowSum+=v;rowSum2+=v*v;++rowHist[v>>4];sum[idx]=sum[above]+rowSum;sum2[idx]=sum2[above]+rowSum2;for(int b=0;b<16;++b)hist[b][idx]=hist[b][above]+rowHist[b];}}
+    auto rect=[stride](const auto &integral,int x0,int y0,int x1,int y1){int a=y0*stride+x0,b=y0*stride+(x1+1),c=(y1+1)*stride+x0,d=(y1+1)*stride+(x1+1);return integral[d]-integral[b]-integral[c]+integral[a];};
     for(int y=0;y<f.h;++y)for(int x=0;x<f.w;++x){
-        std::array<int,16> bins{};int count=0;double sum=0,sum2=0;
-        for(int yy=std::max(0,y-2);yy<=std::min(f.h-1,y+2);++yy){const uchar *line=gray.constScanLine(yy);for(int xx=std::max(0,x-2);xx<=std::min(f.w-1,x+2);++xx){int v=line[xx];++bins[v>>4];sum+=v;sum2+=v*v;++count;}}
-        double entropy=0;for(int n:bins)if(n){double p=double(n)/count;entropy-=p*std::log2(p);}double mean=sum/count;double variance=std::max(0.0,sum2/count-mean*mean);double contrast=std::min(1.0,std::sqrt(variance)/64.0);double exposure=std::clamp(1.0-std::abs(mean-127.5)/127.5,0.12,1.0);int i=y*f.w+x;f.entropy[i]=entropy/4.0;f.score[i]=float((.65*f.entropy[i]+.35*contrast)*exposure);
+        int x0=std::max(0,x-2),x1=std::min(f.w-1,x+2),y0=std::max(0,y-2),y1=std::min(f.h-1,y+2),count=(x1-x0+1)*(y1-y0+1);double s=rect(sum,x0,y0,x1,y1),s2=rect(sum2,x0,y0,x1,y1),entropy=0;for(const auto &h:hist){int n=rect(h,x0,y0,x1,y1);if(n){double p=double(n)/count;entropy-=p*std::log2(p);}}double mean=s/count;double variance=std::max(0.0,s2/count-mean*mean);double contrast=std::min(1.0,std::sqrt(variance)/64.0);double exposure=std::clamp(1.0-std::abs(mean-127.5)/127.5,0.12,1.0);int i=y*f.w+x;f.entropy[i]=entropy/4.0;f.score[i]=float((.65*f.entropy[i]+.35*contrast)*exposure);
     }return f;
 }
 }

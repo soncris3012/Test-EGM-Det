@@ -171,7 +171,7 @@
           <item row="2" column="0">
            <widget class="QLabel" name="batchLabel">
             <property name="text">
-             <string>Batch size</string>
+             <string>Workers (1=auto)</string>
             </property>
            </widget>
           </item>
