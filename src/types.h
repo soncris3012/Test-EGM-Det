@@ -53,6 +53,8 @@ struct FrameResult {
     double irPreferencePct = 0.0;
     double ambiguousPct = 0.0;
     double meanEntropy = 0.0;
+    int pairIndex = 0;
+    int pairTotal = 0;
 };
 
 struct BenchmarkConfig {
@@ -65,6 +67,7 @@ struct BenchmarkConfig {
     int inputSize = 640;
     bool singlePair = false;
     bool showGate = false;
+    int sampleIndex = 0;
 };
 
 Q_DECLARE_METATYPE(OrientedBox)

@@ -256,6 +256,12 @@
         </widget>
        </item>
        <item>
+        <widget class="QPushButton" name="nextButton">
+         <property name="visible"><bool>false</bool></property>
+         <property name="text"><string>Next pair  &gt;</string></property>
+        </widget>
+       </item>
+       <item>
         <widget class="QPushButton" name="exportButton">
          <property name="enabled">
           <bool>false</bool>
