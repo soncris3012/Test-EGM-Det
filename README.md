@@ -14,6 +14,7 @@
 - Rotated IoU, class-aware one-to-one matching, 101-point `AP50`, `AP75`, and `mAP50–95`.
 - Background worker with Qt signals/slots; responsive UI during long runs / worker chạy nền, giao diện không bị đóng băng.
 - CSV and PDF report export / xuất báo cáo CSV và PDF.
+- Per-image reliability rows plus a final `DATASET_SUMMARY` row; PDF reports paginate automatically.
 - Weight-free RGB/IR reliability analysis using local entropy, contrast, exposure quality, and modality preference mapping.
 - Automatic bundled-model discovery at `models/egm_det.onnx`; users do not browse for a model.
 
